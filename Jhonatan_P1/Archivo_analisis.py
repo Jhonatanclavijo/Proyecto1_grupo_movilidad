@@ -185,3 +185,18 @@ fig.tight_layout()
 
 plt.show()
 
+# 1. Correlación de Spearman entre el valor del contrato y el tiempo de rezago
+# Evaluamos si los contratos más costosos tardan más o menos tiempo en cerrarse comparados con los de menor valor.
+rho_vr, p_vr = stats.spearmanr(sin_cierre["valor_del_contrato"],sin_cierre["meses_desde_fin"])
+# Imprimimos el coeficiente de correlación (rho) y el valor p asociado
+print(f"Spearman (valor del contrato vs meses de rezago): rho={rho_vr:.3f}, "f"p={p_vr:.3e}")
+ # 2. Análisis de concentración financiera (Principio de Pareto / 80-20)
+# Ordenamos los contratos del valor más alto al más bajo para identificar el peso económico del rezago.
+valores = sin_cierre["valor_del_contrato"].sort_values(ascending=False).reset_index(drop=True)
+# Calculamos la proporción acumulada del dinero frente al total global
+acumulado = valores.cumsum() / valores.sum()
+# Encontramos la cantidad exacta de expedientes que acumulan el 80% (0.8) del valor monetario total
+n80 = int((acumulado <= 0.8).sum() + 1)
+# Imprimimos cuántos expedientes y qué porcentaje del total representan ese 80% del valor concentrado
+print(f"{n80:,} expedientes ({100*n80/len(valores):.1f}% del rezago) concentran "f"el 80% del valor sin cierre")
+
