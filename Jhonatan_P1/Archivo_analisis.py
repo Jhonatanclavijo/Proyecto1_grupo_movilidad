@@ -200,3 +200,19 @@ n80 = int((acumulado <= 0.8).sum() + 1)
 # Imprimimos cuántos expedientes y qué porcentaje del total representan ese 80% del valor concentrado
 print(f"{n80:,} expedientes ({100*n80/len(valores):.1f}% del rezago) concentran "f"el 80% del valor sin cierre")
 
+
+# 1. Separamos los contratos vencidos en dos grupos: los que tienen liquidación pactada y los que no
+con_liq = ven[ven["liquidacion_pactada"]]
+sin_liq = ven[~ven["liquidacion_pactada"]]
+# 2. Imprimimos la cantidad de contratos y su tasa de cierre (%) para el grupo con liquidación pactada
+print(f"Vencidos con liquidacion pactada : {len(con_liq):,} "
+      f"| tasa de cierre {100*con_liq['cerrado'].mean():.1f}%")
+# 3. Imprimimos la cantidad de contratos y su tasa de cierre (%) para el grupo sin liquidación pactada
+print(f"Vencidos sin liquidacion pactada : {len(sin_liq):,} "
+      f"| tasa de cierre {100*sin_liq['cerrado'].mean():.1f}%")
+# 4. Construimos una tabla cruzada entre la condición de liquidación pactada y el estado de cierre
+tabla = pd.crosstab(ven["liquidacion_pactada"], ven["cerrado"])
+# 5. Aplicamos la prueba estadística de Chi-cuadrado para evaluar si la diferencia en el cierre es estadísticamente significativa
+chi2, p, gl, _ = stats.chi2_contingency(tabla)
+# 6. Imprimimos los estadísticos globales de la prueba (chi2, grados de libertad y valor p)
+print(f"Chi-cuadrado: chi2={chi2:,.1f}, gl={gl}, p={p:.2e}")
