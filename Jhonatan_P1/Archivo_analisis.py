@@ -88,3 +88,23 @@ ax.legend(fontsize=7, loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=Fal
 
 fig.tight_layout()
 plt.show()
+
+# segunda micropregunta 
+
+# 1. Contar cuántos contratos hay en cada grupo de tiempo
+cantidad_contratos = sin_cierre["tramo_rezago"].value_counts()
+# 2. Sumar el valor del dinero de los contratos por grupo
+# Dividimos entre 1,000 millones (1e9) para que la cifra sea más fácil de leer
+suma_dinero = sin_cierre.groupby("tramo_rezago")["valor_del_contrato"].sum()
+suma_dinero_en_mil_millones = suma_dinero/1000000000
+suma_dinero_redondeado = suma_dinero_en_mil_millones.round(0)
+# 3. Unir estos datos en una tabla resumen (un DataFrame nuevo)
+resumen_tramos = pd.DataFrame({"expedientes": cantidad_contratos,"valor_mil_millones": suma_dinero_redondeado,})
+# 4. Calcular el porcentaje que representa cada grupo frente al total
+total_de_contratos = resumen_tramos["expedientes"].sum()
+porcentaje = (resumen_tramos["expedientes"] / total_de_contratos) *100 # Sacar la regla de tres
+resumen_tramos["% del rezago"] = porcentaje.round(1)  #Redondear a un decimal
+orden_deseado = ["0-4 meses", "4-6 meses", "6-24 meses", "Mas de 24 meses"]
+# 6. Ordenar la tabla con el orden anterior y mostrarla en texto limpio
+tabla_final = resumen_tramos.reindex(orden_deseado)
+print(tabla_final.to_string())
