@@ -21,3 +21,12 @@ df3=df2[~df2["estado_contrato"].isin(sinaporte)]
 
 print(df2.shape)
 print(df3.shape)
+
+valorcontratos = df3['valor_del_contrato'].describe()
+
+print(valorcontratos)
+fila_max = df3.loc[df3['valor_del_contrato'].idxmax()]
+print(fila_max)
+fila_min= df3.loc[df3['valor_del_contrato'].idxmin()]
+print(fila_min)
+
