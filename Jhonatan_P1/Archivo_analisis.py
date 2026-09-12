@@ -137,3 +137,14 @@ for variable in ["tipo_de_contrato","modalidad_de_contratacion", "perfil","depen
     # 7. Imprimimos el encabezado con los estadísticos globales y la tabla resumen en
     print(f"\n--- {variable}  (chi2={chi2:,.1f}, gl={gl}, p={p:.2e}, V={v:.3f})")
     print(resumen.to_string())
+
+#Prueba: el rezago difiere entre tipos de contrato?
+# 1. Agrupamos los datos por tipo de contrato y filtramos los grupos con menos de 30 registros
+# para evitar distorsiones estadísticas por muestras muy pequeñas.
+grupos = [g["meses_desde_fin"].dropna().values for _, g in sin_cierre.groupby("tipo_de_contrato") if len(g) >= 30]
+
+# 2. Aplicamos la prueba de Kruskal-Wallis (alternativa no paramétrica al ANOVA)
+# para contrastar si las medianas de rezago difieren entre los tipos de contrato.
+h, p_h = stats.kruskal(*grupos)
+# 3. Imprimimos el estadístico H y el valor p con notación científica para análisis formal.
+print(f"\nKruskal-Wallis (rezago entre tipos de contrato): H={h:,.1f}, p={p_h:.3e}")
