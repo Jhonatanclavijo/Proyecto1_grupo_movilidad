@@ -156,6 +156,18 @@ layout = html.Div([
  
 ], style={"fontFamily": "Segoe UI, Arial", "backgroundColor": "#f7fafc",
           "padding": "18px"})
- 
+
+# funcion auxiliar
+
+def filtrar(umbral, deps, tipos):
+    """Devuelve el universo filtrado y el subconjunto que cuenta como rezagado."""
+    datos = ven
+    if deps:
+        datos = datos[datos["dependencia"].isin(deps)]
+    if tipos:
+        datos = datos[datos["tipo_de_contrato"].isin(tipos)]
+    rezago = datos[(~datos["cerrado"]) & (datos["meses_desde_fin"] >= umbral)]
+    return datos, rezago
+
 
 
