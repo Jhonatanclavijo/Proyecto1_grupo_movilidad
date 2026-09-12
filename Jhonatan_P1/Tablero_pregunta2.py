@@ -131,8 +131,7 @@ layout = html.Div([
                 html.Label("Expedientes que puede cerrar por semana",
                            style={"fontSize": "12px", "fontWeight": "600"}),
                 html.Br(),
-                dcc.Input(id="p3_capacidad", type="number", value=40, min=1,
-                          max=2000, step=5, debounce=True,
+                dcc.Input(id="p3_capacidad", type="text", value=40, debounce=True,
                           style={"width": "110px", "marginTop": "6px"}),
             ], style={"marginRight": "30px"}),
             # Selector de estrategia o regla de priorización para la depuración
@@ -283,8 +282,14 @@ def registrar_callbacks(app):
             capacidad = int(float(capacidad))
         except (TypeError, ValueError):
             capacidad = CAPACIDAD_POR_DEFECTO
-            aviso = " (se usó el valor por defecto porque el campo estaba vacío)"
- 
+            aviso = ""
+        texto_capacidad = str(capacidad).strip().replace(".", "").replace(",", "")
+        if texto_capacidad.isdigit():
+            capacidad = int(texto_capacidad)
+        else:
+            capacidad = CAPACIDAD_POR_DEFECTO
+            aviso = f" (valor no válido, se usó {CAPACIDAD_POR_DEFECTO})"
+
         if capacidad < 1:
             capacidad = 1
             aviso = " (mínimo 1 expediente por semana)"
