@@ -11,3 +11,13 @@ print(df2.head())
 p_faltantes= ["no definido", "nan", "none", ""]
 faltantes=pd.DataFrame({"columna": df2.columns,"pct_faltante": [round(100*df2[c].astype(str).str.strip().str.lower().isin(p_faltantes).mean(), 1)for c in df2.columns],}).sort_values("pct_faltante", ascending=False) # Calcula el porcentaje de faltantes de las columnas de interes
 print(faltantes) #visualizar cuales tienen faltantes de interes en las columnas
+#limpieza de datos 
+estadsiticas=df2.describe(include='all')
+print(df2['estado_contrato'].unique())
+#remover las filas que contengan datos que no aportan a la pregunta
+sinaporte=["Borrador","Cancelado","En aprobación","En aprobacion","enviado Proveedor"]
+
+df3=df2[~df2["estado_contrato"].isin(sinaporte)]
+
+print(df2.shape)
+print(df3.shape)
