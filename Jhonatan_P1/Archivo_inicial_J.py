@@ -55,3 +55,17 @@ df4["meses_desde_fin"] = ((FECHA_CORTE - df4["fecha_de_fin_del_contrato"]).dt.da
                          / 30.44).round(1)
 df4.loc[~df4["vencido"], "meses_desde_fin"] = np.nan
 print(df4.shape)
+
+estados_de_ejecucion = ["En ejecución", "Modificado", "Aprobado", "Suspendido"]
+ 
+df4["cerrado"] = df4["estado_contrato"].eq("Cerrado")
+df4["cerrado_amplio"] = df4["estado_contrato"].isin(["Cerrado", "terminado"])
+df4["estado_incompatible"] = df4["vencido"] & df4["estado_contrato"].isin(estados_de_ejecucion)
+vencidos = df4[df4["vencido"]]
+
+df4["tramo_rezago"] = pd.cut(df4["meses_desde_fin"],bins=[-0.01, 4, 6, 24, np.inf],labels=["0-4 meses", "4-6 meses", "6-24 meses", "Mas de 24 meses"],)
+
+df5 =df4[df4['valor_del_contrato'] > 0]
+
+print(df4.shape)
+print(df5.shape)
