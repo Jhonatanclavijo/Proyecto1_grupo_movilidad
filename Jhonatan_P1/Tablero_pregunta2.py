@@ -33,5 +33,18 @@ ven["anio_fin"] = ven["anio_fin"].astype(int)
 LISTA_DEPENDENCIAS = sorted(ven["dependencia"].unique())
 LISTA_TIPOS = sorted(ven["tipo_de_contrato"].dropna().unique())
 
+# Caja de kpis superiores
+CAJA = {"backgroundColor": "white", "padding": "16px", "borderRadius": "10px","boxShadow": "0 1px 3px rgba(0,0,0,.08)","marginBottom":"14px"}
+
+CAJA_KPI = {**CAJA, "flex": "1", "textAlign": "center", "margin": "0 6px"}
+ 
+ 
+def kpi(titulo, id_valor, nota):
+    """Crea una tarjeta de indicador. El valor lo llena el callback."""
+    return html.Div([
+        html.Div(titulo, style={"fontSize": "12px", "color": GRIS}),
+        html.Div(id=id_valor, style={"fontSize": "26px", "fontWeight": "700","color": AZUL, "margin": "4px 0"}),html.Div(nota, style={"fontSize": "11px","color": GRIS}),], style=CAJA_KPI)
+
+
 
 
