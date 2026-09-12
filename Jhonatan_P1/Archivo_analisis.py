@@ -148,3 +148,17 @@ grupos = [g["meses_desde_fin"].dropna().values for _, g in sin_cierre.groupby("t
 h, p_h = stats.kruskal(*grupos)
 # 3. Imprimimos el estadístico H y el valor p con notación científica para análisis formal.
 print(f"\nKruskal-Wallis (rezago entre tipos de contrato): H={h:,.1f}, p={p_h:.3e}")
+
+
+# Prueba: persona natural vs juridica
+
+# 1. Separamos el tiempo de rezago en dos grupos: personas naturales (a) y personas jurídicas (b)
+a = sin_cierre.loc[sin_cierre["persona_natural"],"meses_desde_fin"].dropna()
+b = sin_cierre.loc[~sin_cierre["persona_natural"],"meses_desde_fin"].dropna()
+# 2. Aplicamos la prueba de Mann-Whitney U (prueba no paramétrica para comparar dos grupos independientes)
+u, p_u = stats.mannwhitneyu(a, b)
+
+# 3. Imprimimos el resultado comparando las medianas y mostrando el valor p científico
+print(f"Mann-Whitney (persona natural vs juridica): medianas "f"{a.median():.1f} vs {b.median():.1f} meses, p={p_u:.3e}")
+
+
