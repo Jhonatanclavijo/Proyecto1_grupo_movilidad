@@ -1,5 +1,6 @@
 import numpy as np 
 import pandas as pd 
+from datetime import date
 
 df = pd.read_csv(r"C:\Users\jhona\OneDrive - Universidad de los Andes\2026-2\Analítica Para la toma de Desiciones\Proyecto 1\Repositorio no Tocar\Datos_completos_SDM.csv",parse_dates=['fecha_de_firma', 'fecha_de_inicio_del_contrato', 'fecha_de_fin_del_contrato'])
 
@@ -36,4 +37,21 @@ df4 = df3.drop_duplicates(subset=["id_contrato"])
 print(f"Duplicados por id_contrato eliminados: {n_antes - len(df4):,}")
 print(f"Base depurada: {len(df4):,} registros")
 
+#calculo de filas auxiliares
 
+df4["anio_firma"] = df4["fecha_de_firma"].dt.year
+df4["anio_fin"] =  df4["fecha_de_fin_del_contrato"].dt.year
+df4["plazo_dias"] = ( df4["fecha_de_fin_del_contrato"]
+                    -  df4["fecha_de_inicio_del_contrato"]).dt.days
+df4["plazo_meses"] = ( df4["plazo_dias"] / 30.44).round(1)
+
+print(df4.shape)
+
+
+FECHA_CORTE = pd.Timestamp("today").normalize()
+
+df4["vencido"] = df4["fecha_de_fin_del_contrato"] < FECHA_CORTE
+df4["meses_desde_fin"] = ((FECHA_CORTE - df4["fecha_de_fin_del_contrato"]).dt.days
+                         / 30.44).round(1)
+df4.loc[~df4["vencido"], "meses_desde_fin"] = np.nan
+print(df4.shape)
