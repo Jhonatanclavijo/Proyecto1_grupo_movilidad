@@ -108,3 +108,13 @@ orden_deseado = ["0-4 meses", "4-6 meses", "6-24 meses", "Mas de 24 meses"]
 # 6. Ordenar la tabla con el orden anterior y mostrarla en texto limpio
 tabla_final = resumen_tramos.reindex(orden_deseado)
 print(tabla_final.to_string())
+fig2, ax = plt.subplots(figsize=(7.4, 3.4))
+ax.hist(sin_cierre["meses_desde_fin"], bins=60, color=AZUL, alpha=0.85)
+for x, etiqueta in [(4, "4 m\nbilateral"), (6, "6 m\nunilateral"),(24, "24 m\nlímite")]:
+    ax.axvline(x, color=ROJO, ls="--", lw=1)
+    ax.text(x + 1, ax.get_ylim()[1] * 0.75, etiqueta, color=ROJO, fontsize=7)
+ax.set_xlabel("Meses transcurridos desde la terminación del contrato")
+ax.set_ylabel("Expedientes sin cierre registrado")
+ax.set_title("Antigüedad del rezago frente a los términos del art. 11, Ley 1150 de 2007")
+fig2.tight_layout()
+plt.show()
