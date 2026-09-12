@@ -69,3 +69,7 @@ df5 =df4[df4['valor_del_contrato'] > 0]
 
 print(df4.shape)
 print(df5.shape)
+
+ruta_archivo = r"C:\Users\jhona\OneDrive - Universidad de los Andes\2026-2\Analítica Para la toma de Desiciones\Proyecto 1\Repositorio no Tocar\Jhonatan_P1\datos_limpios_sdm.csv"
+df5.to_csv(ruta_archivo, index=False, encoding="utf-8")
+print("¡Archivo guardado con éxito en:", ruta_archivo)
