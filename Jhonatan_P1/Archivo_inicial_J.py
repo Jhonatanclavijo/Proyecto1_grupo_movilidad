@@ -1,7 +1,7 @@
 import numpy as np 
 import pandas as pd 
 
-df = pd.read_csv(r"C:\Users\jhona\OneDrive - Universidad de los Andes\2026-2\Analítica Para la toma de Desiciones\Proyecto 1\Repositorio no Tocar\Datos_completos_SDM.csv")
+df = pd.read_csv(r"C:\Users\jhona\OneDrive - Universidad de los Andes\2026-2\Analítica Para la toma de Desiciones\Proyecto 1\Repositorio no Tocar\Datos_completos_SDM.csv",parse_dates=['fecha_de_firma', 'fecha_de_inicio_del_contrato', 'fecha_de_fin_del_contrato'])
 
 print(df.head())
 #columnas de interes para responder la pregunta
@@ -29,4 +29,11 @@ fila_max = df3.loc[df3['valor_del_contrato'].idxmax()]
 print(fila_max)
 fila_min= df3.loc[df3['valor_del_contrato'].idxmin()]
 print(fila_min)
+
+#duplicados
+n_antes = len(df3)
+df4 = df3.drop_duplicates(subset=["id_contrato"])
+print(f"Duplicados por id_contrato eliminados: {n_antes - len(df4):,}")
+print(f"Base depurada: {len(df4):,} registros")
+
 
