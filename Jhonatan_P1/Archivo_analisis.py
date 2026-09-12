@@ -162,3 +162,26 @@ u, p_u = stats.mannwhitneyu(a, b)
 print(f"Mann-Whitney (persona natural vs juridica): medianas "f"{a.median():.1f} vs {b.median():.1f} meses, p={p_u:.3e}")
 
 
+#mapa de calor dependencia x ano de terminacion (% de cierre)
+principales = ven["dependencia"].value_counts().head(9).index
+mapa = (ven[ven["dependencia"].isin(principales)]
+        .pivot_table(index="dependencia", columns="anio_fin",
+                     values="cerrado", aggfunc="mean") * 100)
+fig, ax = plt.subplots(figsize=(8.6, 3.8))
+imagen = ax.imshow(mapa.values, cmap="RdYlGn", vmin=0, vmax=100, aspect="auto")
+ax.set_xticks(range(len(mapa.columns)))
+ax.set_xticklabels([int(c) for c in mapa.columns], fontsize=8)
+ax.set_yticks(range(len(mapa.index)))
+ax.set_yticklabels(mapa.index, fontsize=7)
+for i in range(mapa.shape[0]):
+    for j in range(mapa.shape[1]):
+        if not np.isnan(mapa.values[i, j]):
+            ax.text(j, i, f"{mapa.values[i, j]:.0f}", ha="center", va="center",
+                    fontsize=6.5)
+ax.set_title("Porcentaje de cierre por dependencia y año de terminación")
+ax.grid(False)
+fig.colorbar(imagen, ax=ax, shrink=0.8, label="% cerrado")
+fig.tight_layout()
+
+plt.show()
+
