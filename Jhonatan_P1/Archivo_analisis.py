@@ -118,3 +118,22 @@ ax.set_ylabel("Expedientes sin cierre registrado")
 ax.set_title("Antigüedad del rezago frente a los términos del art. 11, Ley 1150 de 2007")
 fig2.tight_layout()
 plt.show()
+
+# Recorremos cada una de las variables clave para analizar su relación con el cierre de contratos
+for variable in ["tipo_de_contrato","modalidad_de_contratacion", "perfil","dependencia"]:
+    # 1. Seleccionamos únicamente las 6 categorías más frecuentes de la variable actual
+    categorias = ven[variable].value_counts().head(6).index
+    # 2. Creamos un subconjunto de datos filtrando solo esas categorías principales
+    sub = ven[ven[variable].isin(categorias)]
+    # 3. Construimos una tabla cruzada entre la categoría y si el contrato está cerrado o no
+    tabla = pd.crosstab(sub[variable], sub["cerrado"])
+    # 4. Aplicamos la prueba estadística Chi-cuadrado para ver si hay una relación real
+    chi2, p, gl, _ = stats.chi2_contingency(tabla)
+    # 5. Calculamos la V de Cramer para medir qué tan fuerte es esa asociación (de 0 a 1)
+    v = np.sqrt(chi2 / (tabla.values.sum() * (min(tabla.shape) - 1)))
+    #6. Agrupamos los datos para armar un resumen de desempeño por cada categoría
+    resumen = (sub.groupby(variable).agg(contratos=("cerrado", "size"),pct_cierre=("cerrado", lambda s: round(100 * s.mean(), 1)),rezago_mediano=("meses_desde_fin", "median")).sort_values("pct_cierre"))
+
+    # 7. Imprimimos el encabezado con los estadísticos globales y la tabla resumen en
+    print(f"\n--- {variable}  (chi2={chi2:,.1f}, gl={gl}, p={p:.2e}, V={v:.3f})")
+    print(resumen.to_string())
