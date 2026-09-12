@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -61,3 +61,30 @@ cohortes = (ven.groupby("anio_fin").agg(contratos=("cerrado", "size"),cerrados=(
 cohortes["tasa_cierre"] = (100 * cohortes["tasa_cierre"]).round(1)
 
 print(cohortes.to_string())
+
+# Tasa de cierre por ano de terminacion
+
+rho, p_rho = stats.spearmanr(cohortes.index, cohortes["tasa_cierre"])
+
+print(f"\nSpearman (año de terminacion vs tasa de cierre):rho={rho:.2f}, p={p_rho:.4f}")
+
+
+tabla = pd.crosstab(ven["anio_fin"], ven["cerrado"])
+chi2, p, gl, _ = stats.chi2_contingency(tabla)
+v_cramer = np.sqrt(chi2 / (tabla.values.sum() * (min(tabla.shape) - 1)))
+print(f"Chi-cuadrado (cohorte x cierre): chi2={chi2:,.1f}, gl={gl}, p={p:.3e}, "
+      f"V de Cramer={v_cramer:.3f}")
+
+estados = pd.crosstab(ven["anio_fin"], ven["estado_contrato"], normalize="index") * 100
+
+
+fig, ax = plt.subplots(figsize=(8.4, 3.6))
+estados.plot(kind="bar", stacked=True, ax=ax, width=0.8, colormap="tab20")
+
+ax.set_xlabel("Año de terminación del contrato")
+ax.set_ylabel("% de contratos")
+ax.set_title("Estado del expediente según el año en que venció el contrato")
+ax.legend(fontsize=7, loc="center left", bbox_to_anchor=(1.01, 0.5), frameon=False)
+
+fig.tight_layout()
+plt.show()
