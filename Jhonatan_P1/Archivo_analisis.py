@@ -52,5 +52,7 @@ df.loc[objeto.str.contains("profesional", na=False), "perfil"] = "Profesional"
 df["tiene_adicion"] = df["dias_adicionados"].fillna(0) > 0
 df["liquidacion_pactada"] = df["liquidaci_n"].eq("Si")
 df["persona_natural"] = df["tipodocproveedor"].eq("Cédula de Ciudadanía")
+#plazo vencido
+ven = df[df["vencido"]].copy()
+sin_cierre = ven[~ven["cerrado"]].copy()
 
- 
