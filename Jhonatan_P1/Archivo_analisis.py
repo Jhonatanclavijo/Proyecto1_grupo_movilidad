@@ -56,3 +56,8 @@ df["persona_natural"] = df["tipodocproveedor"].eq("Cédula de Ciudadanía")
 ven = df[df["vencido"]].copy()
 sin_cierre = ven[~ven["cerrado"]].copy()
 
+# porcentaje de contratos cerrados vs numero de contratos
+cohortes = (ven.groupby("anio_fin").agg(contratos=("cerrado", "size"),cerrados=("cerrado", "sum"),tasa_cierre=("cerrado", "mean")))
+cohortes["tasa_cierre"] = (100 * cohortes["tasa_cierre"]).round(1)
+
+print(cohortes.to_string())
