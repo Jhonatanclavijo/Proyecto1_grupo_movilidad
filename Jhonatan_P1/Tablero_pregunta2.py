@@ -46,5 +46,116 @@ def kpi(titulo, id_valor, nota):
         html.Div(id=id_valor, style={"fontSize": "26px", "fontWeight": "700","color": AZUL, "margin": "4px 0"}),html.Div(nota, style={"fontSize": "11px","color": GRIS}),], style=CAJA_KPI)
 
 
+layout = html.Div([
+    # ----- ENCABEZADO Y TÍTULO PRINCIPAL -----
+    html.H3("Cierre del expediente contractual", style={"marginBottom": "2px"}),
+    html.P("¿Qué proporción de los contratos cuyo plazo ya venció sigue sin "
+           "registrar su cierre, y cuánto tiempo llevan en esa situación?",
+           style={"color": GRIS, "fontSize": "13px"}),
+     # ----- CAJA DE INSTRUCCIONES Y MARCO LEGAL -----
+    html.Div([
+        html.B("Cómo usar este módulo. "),
+        "Mueva el umbral para definir a partir de cuántos meses considera que un "
+        "expediente está rezagado: las marcas de 4, 6 y 24 meses son los términos "
+        "del artículo 11 de la Ley 1150 de 2007. Abajo, indique cuántos "
+        "expedientes puede depurar por semana para estimar cuánto tardaría.",
+        html.Br(),
+        html.I("El indicador mide el estado del registro en SECOP II, no el "
+               "estado jurídico del contrato."),
+    ], style={**CAJA, "fontSize": "12px", "borderLeft": f"4px solid {AZUL}"}),
+ 
+    # ----- PANEL DE FILTROS INTERACTIVOS -----
+
+    html.Div([
+        # Control deslizante (Slider) para definir el umbral en meses de rezago
+        html.Div([
+            html.Label("Umbral de rezago (meses desde la terminación)",
+                       style={"fontSize": "12px", "fontWeight": "600"}),
+            dcc.Slider(id="p3_umbral", min=0, max=36, step=1, value=4,
+                       marks={0: "0", 4: "4 bilateral", 6: "6 unilateral",
+                              12: "12", 24: "24 límite", 36: "36"},
+                       tooltip={"placement": "bottom", "always_visible": True}),
+        ], style={"flex": "2", "padding": "0 14px"}),
+        # Menú desplegable para filtrar por Dependencia interna
+        html.Div([
+            html.Label("Dependencia", style={"fontSize": "12px", "fontWeight": "600"}),
+            dcc.Dropdown(id="p3_dependencia", options=LISTA_DEPENDENCIAS,
+                         multi=True, placeholder="Todas",
+                         style={"fontSize": "12px"}),
+        ], style={"flex": "1", "padding": "0 8px"}),
+        # Menú desplegable para filtrar por Tipo de contrato
+        html.Div([
+            html.Label("Tipo de contrato",
+                       style={"fontSize": "12px", "fontWeight": "600"}),
+            dcc.Dropdown(id="p3_tipo", options=LISTA_TIPOS, multi=True,
+                         placeholder="Todos", style={"fontSize": "12px"}),
+        ], style={"flex": "1", "padding": "0 8px"}),
+    ], style={**CAJA, "display": "flex", "alignItems": "flex-start"}),
+ 
+    # ----- TARJETAS DE INDICADORES CLAVE (KPIs) -----
+    html.Div([
+        kpi("Expedientes rezagados", "p3_kpi_n", "según el umbral elegido"),
+        kpi("Valor comprometido", "p3_kpi_valor", "suma del valor contratado"),
+        kpi("Rezago mediano", "p3_kpi_mediana", "meses desde la terminación"),
+        kpi("Más de 24 meses", "p3_kpi_criticos", "fuera del término para liquidar"),
+    ], style={"display": "flex", "marginBottom": "6px"}),
+ 
+    # ----- Respuesta micropreguntas 1 y 2
+    html.Div([
+        html.Div([dcc.Graph(id="p3_g1", config={"displayModeBar": False})],
+                 style={**CAJA, "flex": "1", "marginRight": "10px"}),
+        html.Div([dcc.Graph(id="p3_g2", config={"displayModeBar": False})],
+                 style={**CAJA, "flex": "1"}),
+    ], style={"display": "flex"}),
+ 
+    # ----- Respuesta micropregunta 3
+    html.Div([
+        html.Label("Ver la concentración del rezago por:",
+                   style={"fontSize": "12px", "fontWeight": "600"}),
+        dcc.RadioItems(id="p3_agrupador",
+                       options=[{"label": " Dependencia", "value": "dependencia"},
+                                {"label": " Tipo de contrato", "value": "tipo_de_contrato"},
+                                {"label": " Modalidad", "value": "modalidad_de_contratacion"}],
+                       value="dependencia", inline=True,
+                       style={"fontSize": "12px", "marginBottom": "6px"}),
+        dcc.Graph(id="p3_g3", config={"displayModeBar": False}),
+    ], style=CAJA),
+ 
+    # ----- Simulador de Depuracion
+    html.Div([
+        html.H4("¿Cuánto tardaría en depurar el rezago?",
+                style={"marginTop": "0", "marginBottom": "10px"}),
+        html.Div([
+            # Entrada numérica para definir la capacidad semanal de cierre de expedientes
+            html.Div([
+                html.Label("Expedientes que puede cerrar por semana",
+                           style={"fontSize": "12px", "fontWeight": "600"}),
+                html.Br(),
+                dcc.Input(id="p3_capacidad", type="number", value=40, min=1,
+                          max=2000, step=5, debounce=True,
+                          style={"width": "110px", "marginTop": "6px"}),
+            ], style={"marginRight": "30px"}),
+            # Selector de estrategia o regla de priorización para la depuración
+            html.Div([
+                html.Label("¿Por dónde empezar?",
+                           style={"fontSize": "12px", "fontWeight": "600"}),
+                dcc.RadioItems(
+                    id="p3_regla",
+                    options=[{"label": " Los más antiguos", "value": "antiguedad"},
+                             {"label": " Los de mayor valor", "value": "valor"},
+                             {"label": " Combinación de ambos", "value": "mixta"}],
+                    value="antiguedad", style={"fontSize": "12px"},
+                    labelStyle={"display": "block"}),
+            ]),
+        ], style={"display": "flex", "alignItems": "flex-start"}),
+        # Gráfica de proyección temporal del simulador
+        dcc.Graph(id="p3_g4", config={"displayModeBar": False}),
+        # Contenedor dinámico para mostrar el texto con los resultados de la simulación
+        html.Div(id="p3_texto_sim", style={"fontSize": "13px", "marginTop": "4px"}),
+    ], style=CAJA),
+ 
+], style={"fontFamily": "Segoe UI, Arial", "backgroundColor": "#f7fafc",
+          "padding": "18px"})
+ 
 
 
