@@ -169,5 +169,195 @@ def filtrar(umbral, deps, tipos):
     rezago = datos[(~datos["cerrado"]) & (datos["meses_desde_fin"] >= umbral)]
     return datos, rezago
 
+CAPACIDAD_POR_DEFECTO = 40
+CAPACIDAD_MAXIMA = 2000
+
+#Callbacks
+def registrar_callbacks(app):
+ 
+    # --------------------------------------------------------------------------
+    # Callback 1: indicadores y las tres graficas de diagnostico
+    # --------------------------------------------------------------------------
+    @app.callback(
+        Output("p3_kpi_n", "children"), Output("p3_kpi_valor", "children"),
+        Output("p3_kpi_mediana", "children"), Output("p3_kpi_criticos", "children"),
+        Output("p3_g1", "figure"), Output("p3_g2", "figure"),
+        Output("p3_g3", "figure"),
+        Input("p3_umbral", "value"), Input("p3_dependencia", "value"),
+        Input("p3_tipo", "value"), Input("p3_agrupador", "value"))
+    def actualizar(umbral, deps, tipos, agrupador):
+        datos, rezago = filtrar(umbral, deps, tipos)
+ 
+        # ----- indicadores
+        n = f"{len(rezago):,}".replace(",", ".")
+        valor = f"${rezago['valor_del_contrato'].sum()/1e9:,.0f} mil M".replace(",", ".")
+        mediana = f"{rezago['meses_desde_fin'].median():.0f}" if len(rezago) else "-"
+        criticos = (f"{100*(rezago['meses_desde_fin'] > 24).mean():.0f}%"
+                    if len(rezago) else "-")
+ 
+        # ----- GRAFICA 1 (micropregunta 1)
+        # Barras: cuantos cerrados y cuantos sin cerrar por ano de terminacion.
+        # Linea sobre eje derecho: el porcentaje de cierre de cada cohorte.
+        # Muestra que el cierre NO mejora con la antiguedad del contrato.
+        coh = (datos.groupby("anio_fin")
+               .agg(cerrados=("cerrado", "sum"), total=("cerrado", "size")))
+        coh["sin_cerrar"] = coh["total"] - coh["cerrados"]
+        coh["pct"] = (100 * coh["cerrados"] / coh["total"]).round(1)
+ 
+        g1 = go.Figure()
+        g1.add_bar(x=coh.index, y=coh["cerrados"], name="Cerrados",
+                   marker_color=AZUL)
+        g1.add_bar(x=coh.index, y=coh["sin_cerrar"], name="Sin cierre",
+                   marker_color="#e2a6a6")
+        g1.add_scatter(x=coh.index, y=coh["pct"], name="% de cierre", yaxis="y2",
+                       mode="lines+markers", line=dict(color=ROJO, width=2))
+        g1.update_layout(
+            barmode="stack", title="1. El cierre no mejora con la antigüedad",
+            xaxis_title="Año de terminación del contrato",
+            yaxis_title="Contratos",
+            yaxis2=dict(title="% cerrado", overlaying="y", side="right",
+                        range=[0, 100]),
+            height=340, margin=dict(l=10, r=10, t=45, b=10),
+            plot_bgcolor="white", legend=dict(font=dict(size=10)))
+ 
+        # ----- GRAFICA 2 (micropregunta 2)
+        # Histograma del tiempo transcurrido, con los cortes legales marcados.
+        g2 = px.histogram(rezago, x="meses_desde_fin", nbins=40,
+                          color_discrete_sequence=[AZUL],
+                          title="2. Cuánto llevan esperando los expedientes")
+        for x, etiqueta in [(4, "4 m"), (6, "6 m"), (24, "24 m")]:
+            g2.add_vline(x=x, line_dash="dash", line_color=ROJO,
+                         annotation_text=etiqueta, annotation_font_size=10)
+        g2.update_layout(height=340, margin=dict(l=10, r=10, t=45, b=10),
+                         xaxis_title="Meses desde la terminación",
+                         yaxis_title="Expedientes sin cierre",
+                         plot_bgcolor="white", showlegend=False)
+ 
+        # ----- GRAFICA 3 (micropregunta 3)
+        # Ranking del grupo elegido, del que menos cierra al que mas.
+        # El tamano de la burbuja es el valor comprometido sin cierre.
+        resumen = (datos.groupby(agrupador)
+                   .agg(contratos=("cerrado", "size"),
+                        pct_cierre=("cerrado", "mean"))
+                   .query("contratos >= 30"))
+        resumen["pct_cierre"] = (100 * resumen["pct_cierre"]).round(1)
+        valor_rezago = (rezago.groupby(agrupador)["valor_del_contrato"].sum() / 1e9)
+        resumen["valor"] = valor_rezago.reindex(resumen.index).fillna(0).round(1)
+        resumen = resumen.sort_values("pct_cierre")
+ 
+        g3 = go.Figure(go.Bar(
+            x=resumen["pct_cierre"], y=resumen.index, orientation="h",
+            marker_color=AZUL, text=resumen["pct_cierre"].map(lambda v: f"{v:.0f}%"),
+            textposition="outside",
+            customdata=np.stack([resumen["contratos"], resumen["valor"]], axis=-1),
+            hovertemplate="%{y}<br>%{x:.1f}% cerrado<br>"
+                          "%{customdata[0]} contratos<br>"
+                          "$%{customdata[1]} mil M sin cierre<extra></extra>"))
+        g3.add_vline(x=100 * datos["cerrado"].mean(), line_dash="dash",
+                     line_color=ROJO, annotation_text="promedio",
+                     annotation_font_size=10)
+        g3.update_layout(
+            title="3. Dónde se concentra el rezago (grupos con 30 o más contratos)",
+            xaxis_title="% de expedientes cerrados", height=380,
+            margin=dict(l=10, r=40, t=45, b=10), plot_bgcolor="white")
+ 
+        return n, valor, mediana, criticos, g1, g2, g3
+ 
+    # --------------------------------------------------------------------------
+    # Callback 2: simulador de depuracion
+    # --------------------------------------------------------------------------
+    @app.callback(
+        Output("p3_g4", "figure"), Output("p3_texto_sim", "children"),
+        Input("p3_umbral", "value"), Input("p3_dependencia", "value"),
+        Input("p3_tipo", "value"), Input("p3_capacidad", "value"),
+        Input("p3_regla", "value"))
+    def simular(umbral, deps, tipos, capacidad, regla):
+        _, rezago = filtrar(umbral, deps, tipos)
+        total = len(rezago)
+ 
+        # ----- validacion de la capacidad ingresada -------------------------
+        # El campo puede llegar vacio, con texto, con cero o con un numero
+        # absurdo. Se corrige el valor y se avisa al usuario en vez de fallar.
+        aviso = ""
+        try:
+            capacidad = int(float(capacidad))
+        except (TypeError, ValueError):
+            capacidad = CAPACIDAD_POR_DEFECTO
+            aviso = " (se usó el valor por defecto porque el campo estaba vacío)"
+ 
+        if capacidad < 1:
+            capacidad = 1
+            aviso = " (mínimo 1 expediente por semana)"
+        elif capacidad > CAPACIDAD_MAXIMA:
+            capacidad = CAPACIDAD_MAXIMA
+            aviso = f" (se limitó a {CAPACIDAD_MAXIMA} por semana)"
+ 
+        # ----- caso sin expedientes ----------------------------------------
+        if total == 0:
+            vacia = go.Figure()
+            vacia.add_annotation(text="No hay expedientes rezagados con estos filtros",
+                                 showarrow=False, font=dict(size=13, color=GRIS),
+                                 x=0.5, y=0.5, xref="paper", yref="paper")
+            vacia.update_layout(height=260, plot_bgcolor="white",
+                                margin=dict(l=10, r=10, t=45, b=10),
+                                xaxis=dict(visible=False), yaxis=dict(visible=False),
+                                title="Expedientes pendientes según avanza el trabajo")
+            return vacia, "No hay expedientes rezagados con estos filtros."
+ 
+        # ----- ordenar segun la regla que eligio el usuario -----------------
+        if regla == "antiguedad":
+            orden = rezago.sort_values("meses_desde_fin", ascending=False)
+        elif regla == "valor":
+            orden = rezago.sort_values("valor_del_contrato", ascending=False)
+        else:
+            r = rezago.copy()
+            for col in ["meses_desde_fin", "valor_del_contrato"]:
+                rango = r[col].max() - r[col].min()
+                r["n_" + col] = 0.5 if rango == 0 else (r[col] - r[col].min()) / rango
+            r["puntaje"] = 0.5 * r["n_meses_desde_fin"] + 0.5 * r["n_valor_del_contrato"]
+            orden = r.sort_values("puntaje", ascending=False)
+ 
+        # ----- curva de agotamiento ----------------------------------------
+        # Si la capacidad alcanza para todo, el trabajo termina en la primera
+        # semana y la curva tiene solo dos puntos: el inicio y el cero.
+        semanas = int(np.ceil(total / capacidad))
+        eje = np.arange(0, semanas + 1)
+        pendientes = np.maximum(total - capacidad * eje, 0)
+ 
+        fig = go.Figure(go.Scatter(x=eje, y=pendientes, mode="lines+markers"
+                                   if semanas <= 12 else "lines",
+                                   line=dict(color=AZUL, width=3), fill="tozeroy",
+                                   fillcolor="rgba(43,108,176,.12)",
+                                   hovertemplate="Semana %{x}<br>"
+                                                 "%{y} expedientes pendientes"
+                                                 "<extra></extra>"))
+        fig.update_layout(title="Expedientes pendientes según avanza el trabajo",
+                          xaxis_title="Semanas", yaxis_title="Expedientes pendientes",
+                          height=260, margin=dict(l=10, r=10, t=45, b=10),
+                          plot_bgcolor="white",
+                          xaxis=dict(range=[0, max(semanas, 1)]),
+                          yaxis=dict(range=[0, total * 1.08]))
+ 
+        # ----- expedientes que cruzarian los 24 meses en el camino ----------
+        orden = orden.reset_index(drop=True)
+        semana_atencion = np.floor(orden.index / capacidad) + 1
+        meses_al_atender = orden["meses_desde_fin"] + semana_atencion / 4.33
+        cruzan = int(((orden["meses_desde_fin"] <= 24) & (meses_al_atender > 24)).sum())
+ 
+        # ----- texto del resultado -----------------------------------------
+        if capacidad >= total:
+            duracion = "menos de una semana (0,0 meses)"
+        else:
+            duracion = f"{semanas} semanas ({semanas/4.33:.1f} meses)"
+ 
+        texto = html.Span([
+            f"Con {capacidad} expedientes por semana{aviso}, depurar los "
+            f"{total:,} rezagados toma cerca de ".replace(",", "."),
+            html.B(duracion),
+            f". Con esta regla, {cruzan} expedientes que hoy están dentro del "
+            f"término de 24 meses lo superarían antes de ser atendidos.",
+        ])
+        return fig, texto
+
 
 
