@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 import unicodedata
-
+from matplotlib.patches import Rectangle
 plt.rcParams.update({"figure.dpi": 130, "font.size": 9,
                      "axes.spines.top": False, "axes.spines.right": False,
                      "axes.grid": True, "grid.alpha": 0.25})
@@ -216,3 +216,64 @@ tabla = pd.crosstab(ven["liquidacion_pactada"], ven["cerrado"])
 chi2, p, gl, _ = stats.chi2_contingency(tabla)
 # 6. Imprimimos los estadísticos globales de la prueba (chi2, grados de libertad y valor p)
 print(f"Chi-cuadrado: chi2={chi2:,.1f}, gl={gl}, p={p:.2e}")
+
+
+# ==============================================================================
+# FIGURA PARA LA PRESENTACION - hallazgo principal
+# Panel izquierdo : 100 cuadros, uno por cada 1% de los contratos vencidos.
+# Panel derecho   : cuantos expedientes hay en cada tramo de rezago.
+# Responde las dos partes de la pregunta: que proporcion y desde hace cuanto.
+# ==============================================================================
+AZUL_F, ROJO_F = "#2E5C8A", "#B33A3A"
+n_cerrados = int(round(100 * ven["cerrado"].mean()))
+
+orden_tramos = ["0-4 meses", "4-6 meses", "6-24 meses", "Mas de 24 meses"]
+conteo = (sin_cierre["tramo_rezago"].value_counts()
+          .reindex(orden_tramos).fillna(0).astype(int))
+
+fig, (izq, der) = plt.subplots(1, 2, figsize=(9.0, 2.8), dpi=200,
+                               gridspec_kw={"width_ratios": [1, 1.5]})
+
+# --- panel izquierdo: cuadricula de 10x10
+izq.text(0, 1.5, "Cada cuadro es 1 de cada 100 contratos vencidos",
+         fontsize=8.5, color="#555555")
+for i in range(100):
+    fila, col = divmod(i, 10)
+    izq.add_patch(Rectangle((col * 1.12, -fila * 1.12), 1, 1,
+                            facecolor=AZUL_F if i < n_cerrados else ROJO_F,
+                            edgecolor="white", linewidth=1.4))
+izq.add_patch(Rectangle((0, -11.45), 0.58, 0.58, facecolor=AZUL_F))
+izq.text(0.78, -11.16, f"{n_cerrados} cerrados", fontsize=9,
+         color="#333333", va="center")
+izq.add_patch(Rectangle((5.5, -11.45), 0.58, 0.58, facecolor=ROJO_F))
+izq.text(6.28, -11.16, f"{100 - n_cerrados} sin cierre", fontsize=9,
+         color="#333333", va="center")
+izq.set_xlim(-0.3, 11.6)
+izq.set_ylim(-12.1, 2.4)
+izq.axis("off")
+izq.set_aspect("equal")
+
+# --- panel derecho: barras por tramo, en semaforo
+etiquetas = ["Menos de\n4 meses", "Entre 4 y\n6 meses",
+             "Entre 6 y\n24 meses", "Más de\n24 meses"]
+colores = ["#3E7D4F", "#E0A526", "#DD7A2E", ROJO_F]
+posiciones = np.arange(4)[::-1]
+
+der.barh(posiciones, conteo.values, color=colores, height=0.62)
+for y, valor in zip(posiciones, conteo.values):
+    der.text(valor + 130, y, f"{valor:,}".replace(",", "."), va="center",
+             fontsize=11, fontweight="bold", color="#333333")
+der.set_yticks(posiciones)
+der.set_yticklabels(etiquetas, fontsize=9.5)
+der.set_xlim(0, conteo.max() * 1.24)
+der.set_ylim(-0.6, 3.8)
+der.set_xticks([])
+der.set_title(f"¿Desde hace cuánto esperan los {len(sin_cierre):,}".replace(",", ".")
+              + " sin cierre?", fontsize=10.5, color="#333333", loc="left", pad=10)
+for borde in der.spines.values():
+    borde.set_visible(False)
+der.tick_params(length=0)
+
+fig.tight_layout(w_pad=2.0)
+
+plt.show()
