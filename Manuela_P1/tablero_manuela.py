@@ -598,9 +598,6 @@ fig_evolucion_tipo.update_layout(
 # DASHBOARD
 # =========================================================
 
-app = Dash(__name__)
-
-
 # Estilo común para las tarjetas KPI
 estilo_tarjeta = {
     "backgroundColor": "white",
@@ -738,23 +735,34 @@ html.Div(
     }
 )
 
-# Asignar el layout a la aplicación
-app.layout = layout_manuela
 
 # =========================================================
-# CALLBACK - SELECTOR DE EVOLUCIÓN TEMPORAL
+# CALLBACKS DE MANUELA
 # =========================================================
 
-@app.callback(
-    Output("manuela-grafica-temporal", "figure"),
-    Input("manuela-selector-temporal", "value")
-)
-def actualizar_grafica_temporal(dimension):
+def registrar_callbacks_manuela(app):
 
-    if dimension == "tipo":
-        return fig_evolucion_tipo
+    @app.callback(
+        Output("manuela-grafica-temporal", "figure"),
+        Input("manuela-selector-temporal", "value")
+    )
+    def actualizar_grafica_temporal(dimension):
 
-    return fig_evolucion_modalidad
+        if dimension == "tipo":
+            return fig_evolucion_tipo
+
+        return fig_evolucion_modalidad
+
+# =========================================================
+# EJECUCIÓN INDIVIDUAL
+# =========================================================
 
 if __name__ == "__main__":
+
+    app = Dash(__name__)
+
+    app.layout = layout_manuela
+
+    registrar_callbacks_manuela(app)
+
     app.run(debug=True)
