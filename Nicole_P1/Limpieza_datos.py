@@ -3,7 +3,8 @@
 import numpy as np
 import pandas as pd
 
-RUTA_ENTRADA = r"C:\Users\castr\Desktop\Andes\Semestres\8\Analítica\Proyecto\Datos_completos_SDM.csv"
+#RUTA_ENTRADA = r"C:\Users\castr\Desktop\Andes\Semestres\8\Analítica\Proyecto\Datos_completos_SDM.csv"
+RUTA_ENTRADA="Datos_completos_SDM.csv"
 RUTA_SALIDA = "datos_limpios.csv"
 FECHAS = ["fecha_de_firma", "fecha_de_inicio_del_contrato", "fecha_de_fin_del_contrato"]
 
