@@ -397,7 +397,8 @@ TOTAL_PROVEEDORES = int(DF["documento_proveedor"].nunique())
 # El año 2019 se excluye de esta pregunta: la fuente reporta 460 contratos
 # frente a ~2.000 de los años vecinos, lo que distorsiona cualquier medida de
 # concentración anual. Las otras dos secciones sí lo conservan y lo advierten.
-DF_P1 = DF[DF["anio_firma"] != 2019].copy()
+_identificado = DF["documento_proveedor"].astype(str).str.strip().str.lower().ne("no definido")
+DF_P1 = DF[(DF["anio_firma"] != 2019) & _identificado].copy()
  
 ANIOS_P1 = sorted(DF_P1["anio_firma"].unique().tolist())
 ANIO_MIN_P1, ANIO_MAX_P1 = ANIOS_P1[0], ANIOS_P1[-1]
